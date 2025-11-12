@@ -182,7 +182,19 @@ def process_video():
         
         url = data['url']
         frame_interval = int(data.get('frame_interval', 1))
-        max_frames = int(data.get('max_frames', 0)) or None
+        
+        # Handle max_frames - can be None, empty string, or number
+        max_frames_value = data.get('max_frames')
+        if max_frames_value is None or max_frames_value == '':
+            max_frames = None
+        else:
+            try:
+                max_frames = int(max_frames_value)
+                if max_frames <= 0:
+                    max_frames = None
+            except (ValueError, TypeError):
+                max_frames = None
+        
         quality = data.get('quality', 'best')
         
         # Generate unique task ID
