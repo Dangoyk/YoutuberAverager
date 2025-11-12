@@ -131,13 +131,46 @@ def index():
 @app.route('/health')
 def health():
     """Health check endpoint"""
+    import sys
+    import traceback
+    
     status = {
         'status': 'ok',
         'message': 'Server is running',
-        'youtube_averager_available': YouTubeColorAverager is not None
+        'youtube_averager_available': YouTubeColorAverager is not None,
+        'python_version': sys.version
     }
+    
     if import_error_message:
         status['import_error'] = import_error_message
+        status['has_error'] = True
+    else:
+        status['has_error'] = False
+    
+    # Try to import and show what happens
+    try:
+        import cv2
+        status['opencv_available'] = True
+        status['opencv_version'] = cv2.__version__
+    except Exception as e:
+        status['opencv_available'] = False
+        status['opencv_error'] = str(e)
+    
+    try:
+        import numpy
+        status['numpy_available'] = True
+        status['numpy_version'] = numpy.__version__
+    except Exception as e:
+        status['numpy_available'] = False
+        status['numpy_error'] = str(e)
+    
+    try:
+        import yt_dlp
+        status['yt_dlp_available'] = True
+    except Exception as e:
+        status['yt_dlp_available'] = False
+        status['yt_dlp_error'] = str(e)
+    
     return jsonify(status)
 
 @app.route('/static/<path:filename>')
