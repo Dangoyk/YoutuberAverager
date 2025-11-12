@@ -39,12 +39,25 @@ class YouTubeColorAverager:
         """
         print(f"Downloading video from: {url}")
         
-        # Configure yt-dlp options
+        # Configure yt-dlp options with better bot detection bypass
         ydl_opts = {
             'format': quality,
             'outtmpl': str(self.output_dir / '%(title)s.%(ext)s'),
             'quiet': False,
             'no_warnings': False,
+            # Add headers to make it look like a real browser
+            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'referer': 'https://www.youtube.com/',
+            # Additional options to help with bot detection
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['android', 'web'],
+                    'player_skip': ['webpage', 'configs'],
+                }
+            },
+            # Retry on errors
+            'retries': 3,
+            'fragment_retries': 3,
         }
         
         try:
