@@ -7,12 +7,20 @@ import os
 import uuid
 import threading
 from pathlib import Path
-from youtube_averager import YouTubeColorAverager
 import json
 
-app = Flask(__name__)
+app = Flask(__name__, 
+            template_folder='templates',
+            static_folder='static')
 app.config['SECRET_KEY'] = os.urandom(24)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max
+
+# Import after Flask app is created
+try:
+    from youtube_averager import YouTubeColorAverager
+except ImportError as e:
+    print(f"Error importing YouTubeColorAverager: {e}")
+    YouTubeColorAverager = None
 
 # Store processing status
 processing_status = {}
@@ -26,6 +34,14 @@ UPLOAD_DIR.mkdir(exist_ok=True, parents=True)
 
 def process_video_task(task_id, url, frame_interval, max_frames, quality):
     """Background task to process video"""
+    if YouTubeColorAverager is None:
+        processing_status[task_id] = {
+            'status': 'error',
+            'progress': 0,
+            'message': 'YouTubeColorAverager not available'
+        }
+        return
+    
     try:
         processing_status[task_id] = {
             'status': 'downloading',
@@ -96,34 +112,48 @@ def process_video_task(task_id, url, frame_interval, max_frames, quality):
 @app.route('/')
 def index():
     """Main page"""
-    return render_template('index.html')
+    try:
+        return render_template('index.html')
+    except Exception as e:
+        return f"Error loading template: {str(e)}", 500
+
+@app.route('/health')
+def health():
+    """Health check endpoint"""
+    return jsonify({'status': 'ok', 'message': 'Server is running'})
 
 
 @app.route('/api/process', methods=['POST'])
 def process_video():
     """API endpoint to start video processing"""
-    data = request.json
+    if YouTubeColorAverager is None:
+        return jsonify({'error': 'Video processing not available'}), 503
     
-    if not data or 'url' not in data:
-        return jsonify({'error': 'YouTube URL is required'}), 400
-    
-    url = data['url']
-    frame_interval = int(data.get('frame_interval', 1))
-    max_frames = int(data.get('max_frames', 0)) or None
-    quality = data.get('quality', 'best')
-    
-    # Generate unique task ID
-    task_id = str(uuid.uuid4())
-    
-    # Start processing in background thread
-    thread = threading.Thread(
-        target=process_video_task,
-        args=(task_id, url, frame_interval, max_frames, quality)
-    )
-    thread.daemon = True
-    thread.start()
-    
-    return jsonify({'task_id': task_id})
+    try:
+        data = request.json
+        
+        if not data or 'url' not in data:
+            return jsonify({'error': 'YouTube URL is required'}), 400
+        
+        url = data['url']
+        frame_interval = int(data.get('frame_interval', 1))
+        max_frames = int(data.get('max_frames', 0)) or None
+        quality = data.get('quality', 'best')
+        
+        # Generate unique task ID
+        task_id = str(uuid.uuid4())
+        
+        # Start processing in background thread
+        thread = threading.Thread(
+            target=process_video_task,
+            args=(task_id, url, frame_interval, max_frames, quality)
+        )
+        thread.daemon = True
+        thread.start()
+        
+        return jsonify({'task_id': task_id})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/status/<task_id>')
@@ -164,7 +194,9 @@ def get_image(task_id, filename):
 
 
 # Export app for Vercel
-# Vercel will automatically detect the Flask app
+# The @vercel/python builder automatically detects Flask apps
+# No explicit handler needed - just export the app
+
 # For local development
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
