@@ -133,8 +133,14 @@ def health():
     return jsonify({
         'status': 'ok',
         'message': 'Server is running',
-        'youtube_averager_available': YouTubeColorAverager is not None
+        'youtube_averager_available': YouTubeColorAverager is not None,
+        'import_error': import_error_message if import_error_message else None
     })
+
+@app.route('/favicon.ico')
+def favicon():
+    """Favicon endpoint to prevent 404 errors"""
+    return '', 204  # No content
 
 @app.route('/static/<path:filename>')
 def serve_static(filename):
@@ -159,14 +165,17 @@ def serve_static(filename):
 @app.route('/api/process', methods=['POST'])
 def process_video():
     """API endpoint to start video processing"""
-    if YouTubeColorAverager is None:
-        error_msg = 'Video processing not available'
-        if import_error_message:
-            error_msg += f': {import_error_message}'
-        return jsonify({'error': error_msg, 'import_error': import_error_message}), 503
-    
     try:
-        data = request.json
+        if YouTubeColorAverager is None:
+            error_msg = 'Video processing not available'
+            if import_error_message:
+                error_msg += f': {import_error_message}'
+            return jsonify({'error': error_msg, 'import_error': import_error_message}), 503
+        
+        if not request.is_json:
+            return jsonify({'error': 'Request must be JSON'}), 400
+        
+        data = request.get_json()
         
         if not data or 'url' not in data:
             return jsonify({'error': 'YouTube URL is required'}), 400
@@ -189,7 +198,11 @@ def process_video():
         
         return jsonify({'task_id': task_id})
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"Error in /api/process: {e}")
+        print(error_trace)
+        return jsonify({'error': str(e), 'traceback': error_trace}), 500
 
 
 @app.route('/api/status/<task_id>')
