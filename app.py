@@ -96,12 +96,16 @@ def process_video_task(task_id, url, frame_interval, max_frames, quality):
         # Create visualization
         viz_file = averager.create_color_visualization(f"{task_id}_timeline.png")
         
+        # Create color video
+        video_file = averager.create_color_video(f"{task_id}_timeline.mp4")
+        
         # Store results
         processing_results[task_id] = {
             'overall_color': overall_color,
             'overall_color_hex': f"#{overall_color[0]:02x}{overall_color[1]:02x}{overall_color[2]:02x}",
             'total_frames': len(frame_colors),
             'timeline_image': f"{task_id}_timeline.png",
+            'timeline_video': f"{task_id}_timeline.mp4",
             'results_file': f"{task_id}_results.json"
         }
         

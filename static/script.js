@@ -134,6 +134,12 @@ function showResults(results) {
     // Update download links
     document.getElementById('downloadJson').href = `/api/download/${currentTaskId}/${results.results_file}`;
     document.getElementById('downloadImage').href = `/api/download/${currentTaskId}/${results.timeline_image}`;
+    if (results.timeline_video) {
+        document.getElementById('downloadVideo').href = `/api/download/${currentTaskId}/${results.timeline_video}`;
+        document.getElementById('downloadVideo').style.display = 'inline-block';
+    } else {
+        document.getElementById('downloadVideo').style.display = 'none';
+    }
 }
 
 function showError(message) {

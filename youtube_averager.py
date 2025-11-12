@@ -236,6 +236,37 @@ class YouTubeColorAverager:
         print(f"Color visualization saved to: {output_path}")
         return output_path
     
+    def create_color_video(self, output_filename: str = "color_timeline.mp4",
+                          fps: int = 30, width: int = 1920, height: int = 1080):
+        """
+        Create an MP4 video showing the color timeline frame by frame.
+        
+        Args:
+            output_filename: Output video filename
+            fps: Frames per second for the output video
+            width: Width of each frame
+            height: Height of each frame
+        """
+        if not self.frame_colors:
+            raise ValueError("No frame colors to visualize")
+        
+        output_path = self.output_dir / output_filename
+        
+        # Create video writer
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out = cv2.VideoWriter(str(output_path), fourcc, fps, (width, height))
+        
+        # Create a frame for each color
+        for color in self.frame_colors:
+            # Create a full frame with the average color
+            # OpenCV uses BGR, so reverse RGB to BGR
+            frame = np.full((height, width, 3), (color[2], color[1], color[0]), dtype=np.uint8)
+            out.write(frame)
+        
+        out.release()
+        print(f"Color video saved to: {output_path}")
+        return output_path
+    
     def print_summary(self):
         """Print a summary of the color analysis."""
         if not self.frame_colors:
