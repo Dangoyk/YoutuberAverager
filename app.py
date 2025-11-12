@@ -1,0 +1,171 @@
+"""
+Flask web application for YouTube Video Color Averager
+"""
+
+from flask import Flask, render_template, request, jsonify, send_file, url_for
+import os
+import uuid
+import threading
+from pathlib import Path
+from youtube_averager import YouTubeColorAverager
+import json
+
+app = Flask(__name__)
+app.config['SECRET_KEY'] = os.urandom(24)
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max
+
+# Store processing status
+processing_status = {}
+processing_results = {}
+
+# Create uploads directory - use /tmp for Vercel (writable directory)
+# Fall back to local uploads for local development
+UPLOAD_DIR = Path("/tmp/uploads" if os.path.exists("/tmp") else "uploads")
+UPLOAD_DIR.mkdir(exist_ok=True, parents=True)
+
+
+def process_video_task(task_id, url, frame_interval, max_frames, quality):
+    """Background task to process video"""
+    try:
+        processing_status[task_id] = {
+            'status': 'downloading',
+            'progress': 0,
+            'message': 'Downloading video...'
+        }
+        
+        # Create unique output directory for this task
+        output_dir = UPLOAD_DIR / task_id
+        output_dir.mkdir(exist_ok=True)
+        
+        # Create averager instance
+        averager = YouTubeColorAverager(output_dir=str(output_dir))
+        
+        # Download video
+        video_path = averager.download_video(url, quality=quality)
+        
+        processing_status[task_id] = {
+            'status': 'processing',
+            'progress': 25,
+            'message': 'Processing frames...'
+        }
+        
+        # Process video
+        frame_colors = averager.process_video(
+            frame_interval=frame_interval,
+            max_frames=max_frames
+        )
+        
+        processing_status[task_id] = {
+            'status': 'finalizing',
+            'progress': 90,
+            'message': 'Generating results...'
+        }
+        
+        # Get overall average
+        overall_color = averager.get_overall_average()
+        
+        # Save results
+        results_file = averager.save_results(f"{task_id}_results.json")
+        
+        # Create visualization
+        viz_file = averager.create_color_visualization(f"{task_id}_timeline.png")
+        
+        # Store results
+        processing_results[task_id] = {
+            'overall_color': overall_color,
+            'overall_color_hex': f"#{overall_color[0]:02x}{overall_color[1]:02x}{overall_color[2]:02x}",
+            'total_frames': len(frame_colors),
+            'timeline_image': f"{task_id}_timeline.png",
+            'results_file': f"{task_id}_results.json"
+        }
+        
+        processing_status[task_id] = {
+            'status': 'completed',
+            'progress': 100,
+            'message': 'Processing complete!'
+        }
+        
+    except Exception as e:
+        processing_status[task_id] = {
+            'status': 'error',
+            'progress': 0,
+            'message': f'Error: {str(e)}'
+        }
+
+
+@app.route('/')
+def index():
+    """Main page"""
+    return render_template('index.html')
+
+
+@app.route('/api/process', methods=['POST'])
+def process_video():
+    """API endpoint to start video processing"""
+    data = request.json
+    
+    if not data or 'url' not in data:
+        return jsonify({'error': 'YouTube URL is required'}), 400
+    
+    url = data['url']
+    frame_interval = int(data.get('frame_interval', 1))
+    max_frames = int(data.get('max_frames', 0)) or None
+    quality = data.get('quality', 'best')
+    
+    # Generate unique task ID
+    task_id = str(uuid.uuid4())
+    
+    # Start processing in background thread
+    thread = threading.Thread(
+        target=process_video_task,
+        args=(task_id, url, frame_interval, max_frames, quality)
+    )
+    thread.daemon = True
+    thread.start()
+    
+    return jsonify({'task_id': task_id})
+
+
+@app.route('/api/status/<task_id>')
+def get_status(task_id):
+    """Get processing status"""
+    if task_id not in processing_status:
+        return jsonify({'error': 'Task not found'}), 404
+    
+    status = processing_status[task_id].copy()
+    
+    # If completed, include results
+    if status['status'] == 'completed' and task_id in processing_results:
+        status['results'] = processing_results[task_id]
+    
+    return jsonify(status)
+
+
+@app.route('/api/download/<task_id>/<filename>')
+def download_file(task_id, filename):
+    """Download result files"""
+    file_path = UPLOAD_DIR / task_id / filename
+    
+    if not file_path.exists():
+        return jsonify({'error': 'File not found'}), 404
+    
+    return send_file(str(file_path), as_attachment=True)
+
+
+@app.route('/api/image/<task_id>/<filename>')
+def get_image(task_id, filename):
+    """Serve image files"""
+    file_path = UPLOAD_DIR / task_id / filename
+    
+    if not file_path.exists():
+        return jsonify({'error': 'Image not found'}), 404
+    
+    return send_file(str(file_path), mimetype='image/png')
+
+
+# Export app for Vercel
+# Vercel will automatically detect the Flask app
+# For local development
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=5000)
+

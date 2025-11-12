@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Color Averager</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎨 YouTube Color Averager</h1>
+            <p class="subtitle">Analyze the average colors of any YouTube video frame by frame</p>
+        </header>
+
+        <main>
+            <div class="form-section">
+                <form id="videoForm">
+                    <div class="form-group">
+                        <label for="youtubeUrl">YouTube Video URL</label>
+                        <input 
+                            type="url" 
+                            id="youtubeUrl" 
+                            name="url" 
+                            placeholder="https://www.youtube.com/watch?v=..." 
+                            required
+                        >
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="frameInterval">Frame Interval</label>
+                            <input 
+                                type="number" 
+                                id="frameInterval" 
+                                name="frame_interval" 
+                                value="1" 
+                                min="1"
+                                title="Process every Nth frame (1 = all frames)"
+                            >
+                            <small>Process every Nth frame (1 = all frames)</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="maxFrames">Max Frames (optional)</label>
+                            <input 
+                                type="number" 
+                                id="maxFrames" 
+                                name="max_frames" 
+                                value="" 
+                                min="1"
+                                placeholder="Leave empty for all"
+                                title="Maximum frames to process"
+                            >
+                            <small>Limit processing (empty = all frames)</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="quality">Video Quality</label>
+                            <select id="quality" name="quality">
+                                <option value="best">Best Available</option>
+                                <option value="720p">720p</option>
+                                <option value="480p">480p</option>
+                                <option value="360p">360p</option>
+                                <option value="worst">Lowest</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="submitBtn" class="btn-primary">
+                        <span id="submitText">Analyze Video</span>
+                        <span id="submitSpinner" class="spinner" style="display: none;"></span>
+                    </button>
+                </form>
+            </div>
+
+            <div id="progressSection" class="progress-section" style="display: none;">
+                <h2>Processing...</h2>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+                <p id="progressMessage" class="progress-message">Initializing...</p>
+            </div>
+
+            <div id="resultsSection" class="results-section" style="display: none;">
+                <h2>Results</h2>
+                
+                <div class="result-card">
+                    <h3>Overall Average Color</h3>
+                    <div class="color-display">
+                        <div class="color-box" id="colorBox"></div>
+                        <div class="color-info">
+                            <div class="color-value">
+                                <strong>RGB:</strong> <span id="rgbValue"></span>
+                            </div>
+                            <div class="color-value">
+                                <strong>Hex:</strong> <span id="hexValue"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="result-card">
+                    <h3>Video Statistics</h3>
+                    <div class="stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Frames Analyzed:</span>
+                            <span class="stat-value" id="frameCount"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="result-card">
+                    <h3>Color Timeline</h3>
+                    <div class="timeline-container">
+                        <img id="timelineImage" alt="Color timeline" class="timeline-image">
+                    </div>
+                </div>
+
+                <div class="download-section">
+                    <a id="downloadJson" class="btn-download" download>
+                        📥 Download JSON Results
+                    </a>
+                    <a id="downloadImage" class="btn-download" download>
+                        🖼️ Download Timeline Image
+                    </a>
+                </div>
+            </div>
+
+            <div id="errorSection" class="error-section" style="display: none;">
+                <h2>Error</h2>
+                <p id="errorMessage"></p>
+                <button onclick="resetForm()" class="btn-secondary">Try Again</button>
+            </div>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
+
