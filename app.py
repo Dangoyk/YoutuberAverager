@@ -122,6 +122,25 @@ def health():
     """Health check endpoint"""
     return jsonify({'status': 'ok', 'message': 'Server is running'})
 
+@app.route('/static/<path:filename>')
+def serve_static(filename):
+    """Serve static files"""
+    try:
+        file_path = os.path.join(app.static_folder, filename)
+        if not os.path.exists(file_path):
+            return jsonify({'error': 'File not found'}), 404
+        
+        # Set correct MIME types
+        mimetype = None
+        if filename.endswith('.css'):
+            mimetype = 'text/css'
+        elif filename.endswith('.js'):
+            mimetype = 'application/javascript'
+        
+        return send_file(file_path, mimetype=mimetype)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 @app.route('/api/process', methods=['POST'])
 def process_video():
