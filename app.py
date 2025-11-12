@@ -37,9 +37,8 @@ except Exception as e:
 processing_status = {}
 processing_results = {}
 
-# Create uploads directory - use /tmp for Vercel (writable directory)
-# Fall back to local uploads for local development
-UPLOAD_DIR = Path("/tmp/uploads" if os.path.exists("/tmp") else "uploads")
+# Create uploads directory
+UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(exist_ok=True, parents=True)
 
 
@@ -131,47 +130,11 @@ def index():
 @app.route('/health')
 def health():
     """Health check endpoint"""
-    import sys
-    import traceback
-    
-    status = {
+    return jsonify({
         'status': 'ok',
         'message': 'Server is running',
-        'youtube_averager_available': YouTubeColorAverager is not None,
-        'python_version': sys.version
-    }
-    
-    if import_error_message:
-        status['import_error'] = import_error_message
-        status['has_error'] = True
-    else:
-        status['has_error'] = False
-    
-    # Try to import and show what happens
-    try:
-        import cv2
-        status['opencv_available'] = True
-        status['opencv_version'] = cv2.__version__
-    except Exception as e:
-        status['opencv_available'] = False
-        status['opencv_error'] = str(e)
-    
-    try:
-        import numpy
-        status['numpy_available'] = True
-        status['numpy_version'] = numpy.__version__
-    except Exception as e:
-        status['numpy_available'] = False
-        status['numpy_error'] = str(e)
-    
-    try:
-        import yt_dlp
-        status['yt_dlp_available'] = True
-    except Exception as e:
-        status['yt_dlp_available'] = False
-        status['yt_dlp_error'] = str(e)
-    
-    return jsonify(status)
+        'youtube_averager_available': YouTubeColorAverager is not None
+    })
 
 @app.route('/static/<path:filename>')
 def serve_static(filename):
@@ -266,11 +229,9 @@ def get_image(task_id, filename):
     return send_file(str(file_path), mimetype='image/png')
 
 
-# Export app for Vercel
-# The @vercel/python builder automatically detects Flask apps
-# No explicit handler needed - just export the app
-
+# For Railway, it will auto-detect the Flask app
 # For local development
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(debug=True, host='0.0.0.0', port=port)
 

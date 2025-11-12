@@ -150,12 +150,14 @@ averager.create_color_visualization("my_timeline.png")
 .
 ├── app.py                 # Flask web application
 ├── youtube_averager.py    # Core processing class (can be used standalone)
+├── requirements.txt       # Python dependencies
+├── Procfile              # Railway deployment config
+├── runtime.txt           # Python version
 ├── templates/
 │   └── index.html        # Web interface HTML
 ├── static/
 │   ├── style.css         # Web interface styles
 │   └── script.js         # Web interface JavaScript
-├── requirements.txt       # Python dependencies
 └── README.md             # This file
 ```
 
@@ -174,45 +176,45 @@ averager.create_color_visualization("my_timeline.png")
 - Video quality affects processing time and file size.
 - The web application runs on `localhost:5000` by default. To make it accessible on your network, change `host='0.0.0.0'` in `app.py`.
 
-## Vercel Deployment
+## Railway Deployment (Recommended)
 
 ### Quick Start
 
-**See `VERCEL_SETUP.md` for simple step-by-step instructions!**
+Railway is the easiest way to deploy this app - it auto-detects Python and Flask!
 
-#### Option 1: Deploy via Vercel Website (Recommended)
+1. **Push your code to GitHub** (if not already)
+   ```bash
+   git add .
+   git commit -m "Ready for Railway"
+   git push origin main
+   ```
 
-1. Push your code to GitHub
-2. Go to [vercel.com](https://vercel.com) and sign in
-3. Click **"Add New..."** → **"Project"**
-4. Import your GitHub repository
-5. Click **"Deploy"** (Vercel auto-detects Python settings)
+2. **Deploy to Railway:**
+   - Go to [railway.app](https://railway.app)
+   - Sign up with GitHub (free)
+   - Click **"New Project"** → **"Deploy from GitHub repo"**
+   - Select your repository
+   - Railway auto-detects Python and deploys!
 
-#### Option 2: Deploy via CLI
+3. **That's it!** Railway will:
+   - Install dependencies from `requirements.txt`
+   - Start your Flask app
+   - Give you a URL like `your-app.railway.app`
+
+### Railway Benefits
+
+✅ **No configuration needed** - Railway auto-detects everything  
+✅ **Better for long-running tasks** - No strict timeout limits  
+✅ **Free tier available** - $5 credit/month (usually enough for testing)  
+✅ **Simple deployment** - Just connect GitHub and deploy  
+
+### Local Development
 
 ```bash
-npm install -g vercel
-vercel login
-vercel
-vercel --prod  # for production
+python app.py
 ```
 
-### Important Limitations
-
-⚠️ **Timeout Limits:**
-- Free tier: **10 seconds** per request
-- Pro tier: **60 seconds** per request  
-- Enterprise: Up to **300 seconds** (5 minutes)
-
-**What this means:** Short videos work best. For longer videos, use:
-- Frame Interval option (process every Nth frame)
-- Max Frames option (limit total frames)
-- Lower video quality settings
-
-**Note:** Background processing may not complete due to timeout limits. The app is configured to use `/tmp` for file storage (Vercel's writable directory).
-
-For detailed setup instructions, see **`VERCEL_SETUP.md`**.  
-For advanced configuration and alternatives, see **`VERCEL_DEPLOYMENT.md`**.
+The app will run on `http://localhost:5000`
 
 ## License
 
