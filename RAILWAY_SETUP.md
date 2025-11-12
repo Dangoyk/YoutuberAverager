@@ -62,6 +62,19 @@
 - Usually enough for testing and light usage
 - Check usage in Railway dashboard
 
+## Finding Your Website URL
+
+After deployment, Railway gives you a URL:
+
+1. Go to Railway Dashboard → Your Project
+2. Click on your service (the web service)
+3. Go to the **"Settings"** tab
+4. Scroll down to **"Domains"** section
+5. You'll see your Railway URL like: `your-app.railway.app`
+6. Click on it or copy it to open your site
+
+**Quick way:** In the main project view, the URL is usually shown at the top or in the service card.
+
 ## That's It!
 
 Railway is designed to be simple - just connect GitHub and deploy. No complex configuration needed!
