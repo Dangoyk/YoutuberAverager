@@ -16,11 +16,22 @@ app.config['SECRET_KEY'] = os.urandom(24)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max
 
 # Import after Flask app is created
+YouTubeColorAverager = None
+import_error_message = None
+
 try:
     from youtube_averager import YouTubeColorAverager
+    print("Successfully imported YouTubeColorAverager")
 except ImportError as e:
+    import_error_message = str(e)
     print(f"Error importing YouTubeColorAverager: {e}")
-    YouTubeColorAverager = None
+    import traceback
+    traceback.print_exc()
+except Exception as e:
+    import_error_message = str(e)
+    print(f"Unexpected error importing YouTubeColorAverager: {e}")
+    import traceback
+    traceback.print_exc()
 
 # Store processing status
 processing_status = {}
@@ -120,7 +131,14 @@ def index():
 @app.route('/health')
 def health():
     """Health check endpoint"""
-    return jsonify({'status': 'ok', 'message': 'Server is running'})
+    status = {
+        'status': 'ok',
+        'message': 'Server is running',
+        'youtube_averager_available': YouTubeColorAverager is not None
+    }
+    if import_error_message:
+        status['import_error'] = import_error_message
+    return jsonify(status)
 
 @app.route('/static/<path:filename>')
 def serve_static(filename):
@@ -146,7 +164,10 @@ def serve_static(filename):
 def process_video():
     """API endpoint to start video processing"""
     if YouTubeColorAverager is None:
-        return jsonify({'error': 'Video processing not available'}), 503
+        error_msg = 'Video processing not available'
+        if import_error_message:
+            error_msg += f': {import_error_message}'
+        return jsonify({'error': error_msg, 'import_error': import_error_message}), 503
     
     try:
         data = request.json
